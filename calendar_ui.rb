@@ -1,5 +1,6 @@
 require 'active_record'
 require './lib/event'
+Dir[File.dirname(__FILE__) + '/lib/*.rb'].each { |file| require file }
 
 database_configurations = YAML::load(File.open('./db/config.yml'))
 development_configuration = database_configurations['development']
@@ -8,19 +9,25 @@ ActiveRecord::Base.establish_connection(development_configuration)
 def main_menu
   input=nil
   until input == 'x'
-    puts "+++++++++++++++++++++++++++++++++"
-    puts "#  Welcome to the calendar app  #"
-    puts "+++++++++++++++++++++++++++++++++"
-    puts "#  Enter 'c' to create an event #"
-    puts "================================="
-    puts "#  Enter 'l' to list your events#"
-    puts "================================="
-    puts "#  Enter 'e' to edit an event   #"
-    puts "================================="
-    puts "#  Enter 'd' to delete an event #"
-    puts "================================="
-    puts "#  Enter 'x' to exit            #"
-    puts "================================="
+    puts "++++++++++++++++++++++++++++++++++++"
+    puts "#  Welcome to the calendar app     #"
+    puts "++++++++++++++++++++++++++++++++++++"
+    puts "#  Enter 'c' to create an event    #"
+    puts "===================================="
+    puts "#  Enter 'l' to list your events   #"
+    puts "===================================="
+    puts "#  Enter 'e' to edit an event      #"
+    puts "===================================="
+    puts "#  Enter 'd' to delete an event    #"
+    puts "===================================="
+    puts "#  Enter 'g' to generic tasklist   #"
+    puts "===================================="
+    puts "#  Enter 'sd' to see task by day   #"
+    puts "===================================="
+    puts "#  Enter 'sm' to see task by month #"
+    puts "===================================="
+    puts "#  Enter 'x' to exit               #"
+    puts "===================================="
     main_menu_choice = gets.chomp.downcase
 
     case main_menu_choice
@@ -32,6 +39,12 @@ def main_menu
       edit_event
     when 'd'
       delete_event
+    when 'g'
+      generic_list
+    when 'sd'
+      see_by_day
+    when 'sm'
+      see_by_month
     when 'x'
       puts 'Exiting, Goodbye'
     else
@@ -41,12 +54,36 @@ def main_menu
   end
 end
 
+def see_by_day
+ puts "Input the date you want to see the events for!"
+ event_date = gets.chomp
+ events = Event.where(:start => event_date)
+ events.each_with_index do |event, i|
+ puts "#{i}: #{event.description}"
+  end
+end
+
+def see_by_month
+  puts "Input the year and month (yyyy/mm) you want to see the events for"
+  event_month = gets.chomp
+  events = Event.where(start: ())
+end
+
+def generic_list
+  events = Event.order(start: :desc)
+  events.each_with_index do |event, i|
+    if Time.now.to_s < event.end.to_s
+  puts "#{i}: \n#{event.description}\n#{event.location}"
+    end
+  end
+end
+
 def create_event
   puts "What is the event name?"
   event_description = gets.chomp
   puts "What is #{event_description}'s location?"
   event_location = gets.chomp
-  puts "What is #{event_description}'s start date?"
+  puts "What is #{event_description}'s start date? (yyyy-mm-dddd) format"
   event_start_date = gets.chomp
   puts "What is #{event_description}'s end date?"
   event_end_date = gets.chomp
@@ -55,9 +92,12 @@ def create_event
 end
 
 def list_events
-  events = Event.all
+
+  events = Event.order(start: :desc)
   events.each_with_index do |event, i|
-    puts "#{i}: \n#{event.description}\n#{event.location} \nThis event starts on #{event.start}\nThis event ends on #{event.end}"
+    if Time.now.to_s < event.end.to_s
+  puts "#{i}: \n#{event.description}\n#{event.location} \nThis event starts on #{event.start}\nThis event ends on #{event.end}"
+    end
   end
 end
 
@@ -96,7 +136,7 @@ end
 def delete_event
   puts "Type the event that you want to delete"
   to_delete = gets.chomp
-  selected_event = Event.where(:description => to_delete).take
+  selected_event = Event.find_by(:description => to_delete)
   selected_event.destroy
   puts "#{to_delete} has been removed!"
 end
